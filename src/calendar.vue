@@ -2,9 +2,9 @@
   <div class="paotui-callendar">
     <div class="cal-wrapper animated slideInDown">
       <div class="cal-header">
-        <div class="btn-l" @click="preMonth"><div class="arrow-left icon">&nbsp</div></div>
+        <div class="btn btn-l" @click="preMonth"></div>
         <div class="title">{{curYearMonth}}</div>
-        <div class="btn-r" @click="nextMonth"><div class="arrow-right icon">&nbsp</div></div>
+        <div class="btn btn-r" @click="nextMonth"></div>
       </div>
       <div class="cal-body">
         <div class="weeks">
@@ -17,6 +17,7 @@
             <p class="date-num" 
             v-if="date.status === 1 || date.status === 2"
             :class="{'active': dateSelect === date.fullDate, 'disabled': date.status === 2}"
+            :style="{'background-color': dateSelect === date.fullDate ? mainColor : '#fff'}"
             @click="handleChangeCurday(date)">
               {{date.date.split('-')[2]}}
             </p>
@@ -31,18 +32,18 @@
 <script>
 function dateTimeFormatter (date ,format) {
   date = new Date(date)
-  if (!date || date.toUTCString() == "Invalid Date") {
-    return ""
+  if (!date || date.toUTCString() === 'Invalid Date') {
+    return '';
   }
 
   var map = {
-    "M": date.getMonth() + 1, //月份
-    "d": date.getDate(), //日
-    "h": date.getHours(), //小时
-    "m": date.getMinutes(), //分
-    "s": date.getSeconds(), //秒
-    "q": Math.floor((date.getMonth() + 3) / 3), //季度
-    "S": date.getMilliseconds() //毫秒
+    'M': date.getMonth() + 1,                    // 月份
+    'd': date.getDate(),                         // 日
+    'h': date.getHours(),                        // 小时
+    'm': date.getMinutes(),                      // 分
+    's': date.getSeconds(),                      // 秒
+    'q': Math.floor((date.getMonth() + 3) / 3),  // 季度
+    'S': date.getMilliseconds()                  // 毫秒
   }
 
   format = format.replace(/([yMdhmsqS])+/g, function(all, t){
@@ -61,6 +62,27 @@ function dateTimeFormatter (date ,format) {
   })
 
   return format
+}
+
+function yearMonthCompare(year, month) {
+  const currentDate = new Date();
+  let currentYear = currentDate.getFullYear();
+  let currentMonth = currentDate.getMonth();
+  if (currentMonth === month && currentYear === year) {
+    return 'current';
+  } else {
+    if (currentYear === year) {
+      if (currentMonth > month) {
+        return 'last';
+      } else {
+        return 'future';
+      }
+    } else if (currentYear < year) {
+      return 'future';
+    } else {
+      return 'last';
+    }
+  }
 }
 
 export default {
@@ -90,6 +112,17 @@ export default {
     selectedDay: {
       type: String,
       required: false
+    },
+    mainColor: {
+      type: String,
+      default: '#06C1AE',
+      required: false
+    },
+    canSelectFuture: {
+      type: Boolean
+    },
+    canSelectLast: {
+      type: Boolean
     }
   },
   computed: {
@@ -114,7 +147,11 @@ export default {
           if (this.calendar.params.curMonth === item.getMonth()) {
             status = 1;
             if (this.calendar.params.curDate < item.getDate()) {
-              status = 2;
+              if (yearMonthCompare(this.calendar.params.curYear, this.calendar.params.curMonth) === 'current') {
+                status = 2;
+              } else {
+                status = 1;
+              }
             }
           } else if (this.calendar.params.curMonth > item.getMonth()) {
             if (this.calendar.params.curYear < item.getFullYear()) {
@@ -125,6 +162,7 @@ export default {
           } else {
             status = 3;
           }
+
           tempItem = {
             date: `${item.getFullYear()}-${(item.getMonth()+1)}-${item.getDate()}`,
             status: status,
@@ -140,16 +178,9 @@ export default {
       }
       return tempArr;
     },
-    today() {
-      let dateObj = new Date();
-      return `${dateObj.getFullYear()}/${dateObj.getMonth()+1}/${dateObj.getDate()}`
-    },
     curYearMonth() {
       let tempDate = Date.parse(new Date(`${this.calendar.params.curYear}/${this.calendar.params.curMonth+1}/01`));
       return dateTimeFormatter(tempDate, this.defaultParams.format);
-    },
-    customColor() {
-      return this.calendar.options.color;
     }
   },
   mounted() {
@@ -157,6 +188,11 @@ export default {
   },
   methods: {
     nextMonth() {
+      if (!this.canSelectFuture) {
+        if (yearMonthCompare(this.calendar.params.curYear, this.calendar.params.curMonth) !== 'last') {
+          return false;
+        }
+      }
       if (this.calendar.params.curMonth < 11) {
         this.calendar.params.curMonth++;
       } else {
@@ -166,6 +202,11 @@ export default {
       this.$emit('month-changed', this.curYearMonth);
     },
     preMonth() {
+      if (!this.canSelectLast) {
+        if (yearMonthCompare(this.calendar.params.curYear, this.calendar.params.curMonth) !== 'future') {
+          return false;
+        }
+      }
       if (this.calendar.params.curMonth > 0) {
         this.calendar.params.curMonth--;
       } else {
@@ -177,7 +218,7 @@ export default {
     handleChangeCurday(date) {
       if (date.status === 1) {
         this.dateSelect = date.fullDate;
-        this.$emit('cur-day-changed', date.date);
+        this.$emit('date-changed', date.fullDate);
       }
     },
     coverClick() {
@@ -189,7 +230,7 @@ export default {
 <style lang="scss">
 @function px2rem($px, $base-rem-size: 75px) {
     @if (unitless($px)) {
-        @return px2rem($px + 0px); // That may fail.
+        @return px2rem($px + 0px);
     }
     @else if (unit($px)==rem) {
         @return $px;
@@ -311,6 +352,23 @@ body {
       text-align: center;
       font-size: px2rem(30);
     }
+
+    .btn {
+      width: px2rem(15);
+      height: px2rem(25);
+      background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAYCAYAAADKx8xXAAAABGdBTUEAALGPC/xhBQAAAelJREFUOBGNlL9Lw1AQx5M0sToEsgid/BvcnKxCWwoKoghFl0IrGGjirOAfoGv6AwyCAXEpCgVFKg6Obm6CiCBFwQri4CBYJK3fS/PsrzTNg+bd3bvPu3v37pUvFosx27aPeJ6vRiIRLZVK2VyAITSbTQt+U61WS63X62XTNKUAHCcAMLscVxuNRsWyrPEum6fIkzWfz29jg33mgbRvFEVZSqfT38zWPzsgGQHrNGEDxwb4NhwOL6iq+tUPkf4PkgI4C/AQokA6xl0oFErquv7ZVjvfHpDMgNcBH0MUXbd7URQTmqa9u7ozDYBkLRQKy6h2GeKY48VxT4BjgF9dvTdVZqQZcBJwBeKEa69JkhTL5XLPpHtGdB0p7TmkfQFddpx5/g1njiPygy9IzuisGXTWFUTFhT+QdnwkSM6lUmka8DWiT5KO8cjK3lYDfnHH9siIXqli/4Qv6FecoanSdeBMVezuVBRzDUWZpYrSiTxBtwHOsc7ukBogyu7QE6SWw8WfYpF1DbVctLtrBkBE2kB6J1hgfUpNPg+op08JZA6cYRhbgAzYnIIFelaItIP09mgnGkEesoBIu33QpSzLi36vnzanqm6SQAORzvDqVzKZzE/bMvwr4PBZLL/gd4C/xzX8VfwOd++s/AF6RMZkOTSmtAAAAABJRU5ErkJggg==);
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
+    }
+
+    .btn-l {
+      margin-left: px2rem(30);
+      transform: rotate(180deg);
+    }
+
+    .btn-r {
+      margin-right: px2rem(30);
+    }
   }
 
   .cal-body {
@@ -349,7 +407,6 @@ body {
         border-radius: 50%;
         font-size: px2rem(30);
         &.active {
-          background: #06C1AE;
           color: #fff;
         }
         &.disabled {
@@ -388,7 +445,7 @@ p {
 
 @keyframes slideInDown {
   from {
-    transform: translate(0%, -00%);
+    transform: translate(0%, -300%);
     visibility: visible;
   }
 
