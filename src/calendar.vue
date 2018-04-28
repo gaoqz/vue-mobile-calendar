@@ -31,12 +31,12 @@
 
 <script>
 function dateTimeFormatter (date ,format) {
-  date = new Date(date)
+  date = new Date(date);
   if (!date || date.toUTCString() === 'Invalid Date') {
     return '';
   }
 
-  var map = {
+  const map = {
     'M': date.getMonth() + 1,                    // 月份
     'd': date.getDate(),                         // 日
     'h': date.getHours(),                        // 小时
@@ -44,24 +44,23 @@ function dateTimeFormatter (date ,format) {
     's': date.getSeconds(),                      // 秒
     'q': Math.floor((date.getMonth() + 3) / 3),  // 季度
     'S': date.getMilliseconds()                  // 毫秒
-  }
+  };
 
-  format = format.replace(/([yMdhmsqS])+/g, function(all, t){
-    var v = map[t]
-    if(v !== undefined){
-      if(all.length > 1){
-        v = '0' + v
-        v = v.substr(v.length-2)
+  format = format.replace(/([yMdhmsqS])+/g, (all, t) => {
+    let v = map[t];
+    if (v !== undefined) {
+      if (all.length > 1) {
+        v = '0' + v;
+        v = v.substr(v.length-2);
       }
-      return v
+      return v;
+    } else if (t === 'y') {
+      return (date.getFullYear() + '').substr(4 - all.length);
     }
-    else if(t === 'y'){
-      return (date.getFullYear() + '').substr(4 - all.length)
-    }
-    return all
-  })
+    return all;
+  });
 
-  return format
+  return format;
 }
 
 function yearMonthCompare(year, month) {
@@ -85,25 +84,22 @@ function yearMonthCompare(year, month) {
   }
 }
 
+const DEFAULTPARAMS = {
+  dayNames: ['一', '二', '三', '四', '五', '六', '日'],
+  format : 'yyyy-MM',
+  fullFormat: 'yyyy-MM-dd'
+};
+
 export default {
   name: 'vue-calendar',
   data () {
     let dateObj = new Date();
     return {
-      defaultParams: {
-        dayNames: ['一', '二', '三', '四', '五', '六', '日'],
-        format : 'yyyy-MM',
-        fullFormat: 'yyyy-MM-dd'
-      },
-      calendar: {
-        options: {
-          color: '#f29543'
-        },
-        params: {
-          curYear: dateObj.getFullYear(),
-          curMonth: dateObj.getMonth(),
-          curDate: dateObj.getDate(),
-        }
+      defaultParams: DEFAULTPARAMS,
+      calendarParams: {
+        curYear: dateObj.getFullYear(),
+        curMonth: dateObj.getMonth(),
+        curDate: dateObj.getDate()
       },
       dateSelect: null
     }
@@ -127,7 +123,7 @@ export default {
   },
   computed: {
     dayList() {
-      let firstDay = new Date(this.calendar.params.curYear, this.calendar.params.curMonth, 1);
+      let firstDay = new Date(this.calendarParams.curYear, this.calendarParams.curMonth, 1);
       let dayOfWeek = firstDay.getDay();
       // 根据当前日期计算偏移量
       if (dayOfWeek <= 0) {
@@ -144,17 +140,17 @@ export default {
           item = new Date(startDate);
           item.setDate(startDate.getDate() + i);
 
-          if (this.calendar.params.curMonth === item.getMonth()) {
+          if (this.calendarParams.curMonth === item.getMonth()) {
             status = 1;
-            if (this.calendar.params.curDate < item.getDate()) {
-              if (yearMonthCompare(this.calendar.params.curYear, this.calendar.params.curMonth) === 'current') {
+            if (this.calendarParams.curDate < item.getDate()) {
+              if (yearMonthCompare(this.calendarParams.curYear, this.calendarParams.curMonth) === 'current') {
                 status = 2;
               } else {
                 status = 1;
               }
             }
-          } else if (this.calendar.params.curMonth > item.getMonth()) {
-            if (this.calendar.params.curYear < item.getFullYear()) {
+          } else if (this.calendarParams.curMonth > item.getMonth()) {
+            if (this.calendarParams.curYear < item.getFullYear()) {
               status = 3
             } else {
               status = 0;
@@ -179,7 +175,7 @@ export default {
       return tempArr;
     },
     curYearMonth() {
-      let tempDate = Date.parse(new Date(`${this.calendar.params.curYear}/${this.calendar.params.curMonth+1}/01`));
+      let tempDate = Date.parse(new Date(`${this.calendarParams.curYear}/${this.calendarParams.curMonth+1}/01`));
       return dateTimeFormatter(tempDate, this.defaultParams.format);
     }
   },
@@ -189,29 +185,29 @@ export default {
   methods: {
     nextMonth() {
       if (!this.canSelectFuture) {
-        if (yearMonthCompare(this.calendar.params.curYear, this.calendar.params.curMonth) !== 'last') {
+        if (yearMonthCompare(this.calendarParams.curYear, this.calendarParams.curMonth) !== 'last') {
           return false;
         }
       }
-      if (this.calendar.params.curMonth < 11) {
-        this.calendar.params.curMonth++;
+      if (this.calendarParams.curMonth < 11) {
+        this.calendarParams.curMonth++;
       } else {
-        this.calendar.params.curYear++;
-        this.calendar.params.curMonth = 0;
+        this.calendarParams.curYear++;
+        this.calendarParams.curMonth = 0;
       }
       this.$emit('month-changed', this.curYearMonth);
     },
     preMonth() {
       if (!this.canSelectLast) {
-        if (yearMonthCompare(this.calendar.params.curYear, this.calendar.params.curMonth) !== 'future') {
+        if (yearMonthCompare(this.calendarParams.curYear, this.calendarParams.curMonth) !== 'future') {
           return false;
         }
       }
-      if (this.calendar.params.curMonth > 0) {
-        this.calendar.params.curMonth--;
+      if (this.calendarParams.curMonth > 0) {
+        this.calendarParams.curMonth--;
       } else {
-        this.calendar.params.curYear--;
-        this.calendar.params.curMonth = 11;
+        this.calendarParams.curYear--;
+        this.calendarParams.curMonth = 11;
       }
       this.$emit('month-changed', this.curYearMonth);
     },
